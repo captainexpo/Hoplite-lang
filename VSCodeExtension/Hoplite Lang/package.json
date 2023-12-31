@@ -1,0 +1,25 @@
+{
+  "name": "hoplite-lang",
+  "displayName": "Hoplite Lang",
+  "description": "Simple programming language",
+  "version": "0.0.2",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "hpl",
+      "aliases": ["HPL lang", "hpl"],
+      "extensions": [".hfs"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "hpl",
+      "scopeName": "source.hpl",
+      "path": "./syntaxes/hpl.tmLanguage.json"
+    }]
+  }
+}

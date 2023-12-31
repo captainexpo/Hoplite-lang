@@ -1,0 +1,26 @@
+var numerator = 4.0 
+var denominator = 1.0 
+var total = 0.0
+var i = true 
+var iterations = 1000000
+var j = 0
+
+while (j < iterations) {
+    
+    if (i) {
+        total = total + (numerator / denominator)
+    } else {
+        total = total - (numerator / denominator)
+    }
+    denominator = denominator + 2
+    if (i) {
+        i = false
+    } else {
+        i = true
+    }
+    j = j + 1
+    print(total)
+}
+
+var 
+print(total) 

@@ -1,0 +1,43 @@
+
+var PI = 3.14159265358979
+
+mkfunc not(bool){
+    if (bool){
+        return false
+    } else {
+        return true
+    }
+}
+
+mkfunc sin_taylor(n){
+    var x = rad_to_deg(n)
+    return 4 * x * (180 - x) / 40500 - x * (180 - x)
+}
+
+mkfunc rad_to_deg(rad){
+    var PI = 3.14159265358979
+    return rad * 180 / PI
+}
+
+mkfunc deg_to_rad(deg){
+    
+    var PI = 3.14159265358979
+    return deg * PI / 180
+}
+mkfunc abs(x){
+    
+    if (x < 0){
+        return x * (1 - 2)
+    } else {
+        return x
+    }
+}
+
+mkfunc sqrt(x){
+    var tolerance = 0.000001
+    var estimate = x / 2
+    while (abs(estimate * estimate - x) > tolerance){
+        estimate = (estimate + x / estimate) / 2
+    }
+    return estimate
+}
