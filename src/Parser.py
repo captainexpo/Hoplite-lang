@@ -1,6 +1,5 @@
-import token_class as Token
-from parserclasses import *
-
+import Tokens as Token
+from Parser_types import *
 class Parser:
     def __init__(self, tokens=None):
         self.tokens = tokens
@@ -19,31 +18,31 @@ class Parser:
             self.pos += 1
         else:
             self.error(f"Expected token: {token_type}, found: {self.current_token()}")
-
+    def get_statement(self):
+        if self.current_token().type == Token.TOKENTYPE.COMMENT:
+            self.eat(Token.TOKENTYPE.COMMENT)
+        elif self.current_token().type == Token.TOKENTYPE.WHILE:
+            return self.parse_while_statement()
+        elif self.current_token().type == Token.TOKENTYPE.FUNCTION_DECLARATION:
+            return self.parse_function_declaration()
+        elif self.current_token().type == Token.TOKENTYPE.VAR:
+            return self.parse_variable_declaration()
+        elif self.current_token().type == Token.TOKENTYPE.NAME:
+            lookahead_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
+            if lookahead_token and lookahead_token.type == Token.TOKENTYPE.LPAREN:
+                return self.parse_function_call()
+            else:
+                return self.parse_assignment()
+        elif self.current_token().type == Token.TOKENTYPE.IF:
+            return self.parse_if_statement()
+        elif self.current_token().type == Token.TOKENTYPE.ELSE:
+            return self.parse_else_statement()
+        else:
+            self.error("Unexpected token " + self.current_token().type)
     def parse(self):
         statements = []
-        while self.current_token() is not None:
-            if self.current_token().type == Token.TOKENTYPE.COMMENT:
-                self.eat(Token.TOKENTYPE.COMMENT)
-
-            elif self.current_token().type == Token.TOKENTYPE.WHILE:
-                statements.append(self.parse_while_statement())
-            elif self.current_token().type == Token.TOKENTYPE.FUNCTION_DECLARATION:
-                statements.append(self.parse_function_declaration())
-            elif self.current_token().type == Token.TOKENTYPE.VAR:
-                statements.append(self.parse_variable_declaration())
-            elif self.current_token().type == Token.TOKENTYPE.NAME:
-                lookahead_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
-                if lookahead_token and lookahead_token.type == Token.TOKENTYPE.LPAREN:
-                    statements.append(self.parse_function_call())
-                else:
-                    statements.append(self.parse_assignment())
-            elif self.current_token().type == Token.TOKENTYPE.IF:
-                statements.append(self.parse_if_statement())
-            elif self.current_token().type == Token.TOKENTYPE.ELSE:
-                statements.append(self.parse_else_statement())
-            else:
-                self.error("Unexpected token " + self.current_token().type)
+        while self.current_token() is not None and self.current_token().type != Token.TOKENTYPE.EOF:
+            statements.append(self.get_statement())
         return statements
 
 
@@ -74,7 +73,13 @@ class Parser:
             if self.current_token().type == Token.TOKENTYPE.COMMA:
                 self.eat(Token.TOKENTYPE.COMMA)
         return arguments
-
+    
+    def parse_list(self):
+        values = []
+        while self.current_token().type != Token.TOKENTYPE.RBRACK:
+            values.append(self.parse_expression())
+            if self.current_token().type == Token.TOKENTYPE.COMMA:
+                self.eat(Token.TOKENTYPE.COMMA)
     def parse_parameters(self):
         parameters = []
         while self.current_token().type != Token.TOKENTYPE.RPAREN:
@@ -87,7 +92,9 @@ class Parser:
     def parse_block(self):
         statements = []
         while self.current_token().type != Token.TOKENTYPE.RBRACE:
-            if self.current_token().type == Token.TOKENTYPE.WHILE:
+            if self.current_token().type == Token.TOKENTYPE.COMMENT:
+                self.eat(Token.TOKENTYPE.COMMENT)
+            elif self.current_token().type == Token.TOKENTYPE.WHILE:
                 statements.append(self.parse_while_statement())
             elif self.current_token().type == Token.TOKENTYPE.IF:
                 statements.append(self.parse_if_statement())
@@ -110,15 +117,13 @@ class Parser:
         expr = self.parse_expression()
         return ReturnStatement(expr)
 
-    
-
     def parse_variable_declaration(self):
         self.eat(Token.TOKENTYPE.VAR)
         var_name = self.current_token().value
         self.eat(Token.TOKENTYPE.NAME)
         self.eat(Token.TOKENTYPE.EQUALS)
         expr = self.parse_expression()
-        return VariableDeclaration(var_name,expr)
+        return VariableDeclaration(var_name, expr)
 
     def parse_assignment(self):
         var_name = self.current_token().value
@@ -129,15 +134,12 @@ class Parser:
 
     def parse_expression(self):
         node = self.parse_term()
-
-        while self.current_token() is not None and self.current_token().type in (
-            Token.TOKENTYPE.IS_EQUAL, Token.TOKENTYPE.GREATER_THAN_OR_EQUAL,
-            Token.TOKENTYPE.LESS_THAN_OR_EQUAL, Token.TOKENTYPE.GREATER_THAN,
-            Token.TOKENTYPE.LESS_THAN
-        ):
+    
+        while self.current_token() is not None and self.current_token().type in Token.COMPARISON_OPERATORS:
             token_type = self.current_token().type
             self.eat(token_type)
             node = ComparisonOperation(node, token_type, self.parse_term())
+
         return node
 
     def parse_term(self):
@@ -162,22 +164,31 @@ class Parser:
 
     def parse_atom(self):
         token = self.current_token()
-        if token.type == Token.TOKENTYPE.INTEGER:
+        if token.type == Token.TOKENTYPE.BANG:
+            self.eat(Token.TOKENTYPE.BANG)
+            operand = self.parse_atom()
+            return UnaryOperation(Token.TOKENTYPE.BANG,operand)
+        elif token.type == Token.TOKENTYPE.MINUS:
+            self.eat(Token.TOKENTYPE.MINUS)
+            operand = self.parse_atom()
+            #print(UnaryOperation(operand, Token.TOKENTYPE.MINUS))
+            return UnaryOperation(Token.TOKENTYPE.MINUS, operand)
+        elif token.type == Token.TOKENTYPE.INTEGER:
             self.eat(Token.TOKENTYPE.INTEGER)
-            return NumberType("integer", token.value)
-        if token.type == Token.TOKENTYPE.STRING:
+            return NumberLiteral("int", token.value)
+        elif token.type == Token.TOKENTYPE.STRING:
             self.eat(Token.TOKENTYPE.STRING)
             token.value = token.value[1:-1]
-            return StringType(token.value)
+            return StringLiteral(token.value)
         elif token.type == Token.TOKENTYPE.FLOAT:
             self.eat(Token.TOKENTYPE.FLOAT)
-            return NumberType("float", token.value)
+            return NumberLiteral("float", token.value)
         elif token.type == Token.TOKENTYPE.TRUE:
             self.eat(Token.TOKENTYPE.TRUE)
-            return BoolType("true")
+            return BooleanLiteral("true")
         elif token.type == Token.TOKENTYPE.FALSE:
             self.eat(Token.TOKENTYPE.FALSE)
-            return BoolType("false")
+            return BooleanLiteral("false")
         elif token.type == Token.TOKENTYPE.NAME:
             # Check if it's a function call
             lookahead_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
@@ -204,7 +215,7 @@ class Parser:
         else_body = None
         if self.current_token() and self.current_token().type == Token.TOKENTYPE.ELSE:
             else_body = self.parse_else_statement()
-        return IfStatement(condition,if_body,else_body)
+        return IfStatement(condition, if_body, else_body)
     def parse_else_statement(self):
         self.eat(Token.TOKENTYPE.ELSE)
         self.eat(Token.TOKENTYPE.LBRACE)
@@ -225,16 +236,49 @@ def parse_program(tokens):
     parser = Parser(tokens)
     return parser.parse()
 
+def simple_ast_format(ast):
+    # This function is used to format the AST for printing
+
+    def format_node(node, indent=0):
+        if isinstance(node, list):
+            return "".join([format_node(item, indent) for item in node])
+        elif isinstance(node, dict):
+            string = ""
+            for key, value in node.items():
+                string += "\t" * indent + str(key) + "\n"
+                string += format_node(value, indent + 1)
+            return string
+        else:
+            return "\t" * indent + str(node) + "\n"
+    return format_node(ast)
+
+
+def parse_program(tokens):
+    parser = Parser(tokens)
+    return parser.parse()
+
+
 if __name__ == "__main__":
     import lexer_class, json
     program =  """
-    mkfunc factorial(x){
-        if (x == 1){
-            return 1
-        }
-        return x * factorial(x - 1)
+    mkfunc add(a, b) {
+        return a + b
     }
-    print(factorial(5))"""
-    print(program)
+    var x = add(2, 3)
+    print(x)
+    var y = !true == false
+    print(y)
+    print(!(x >= 2))
+    x = x % 3
+    var z = 2
+    mkfunc random(a) {
+        var k = a * 2
+        k = k + 1
+        return (a + z) * 2 % 789 + -21354.1315 * k
+    }
+    z = random(z) / 5 < 2
+    print(z)
+
+    """
     tokens = lexer_class.tokenize(program)
-    print(json.dumps(parse_program(tokens),indent=4))
+    print(simple_ast_format(parse_program(tokens)))

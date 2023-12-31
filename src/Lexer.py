@@ -1,4 +1,4 @@
-import token_class as token
+import Tokens as token
 
 class Lexer:
     def __init__(self, text=None):
@@ -40,7 +40,11 @@ class Lexer:
     def tokenize(self):
         while self.current_char is not None:
             self.skip_whitespace()
-            self.tokens.append(self.get_next_token())
+            NEXT = self.get_next_token()
+            if NEXT:
+                self.tokens.append(NEXT)
+            else:
+                self.tokens.append(token.Token(token.TOKENTYPE.EOF, ""))
             #print(self.tokens)
         return self.tokens
     

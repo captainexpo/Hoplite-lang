@@ -9,11 +9,6 @@ mkfunc not(bool){
     }
 }
 
-mkfunc sin_taylor(n){
-    var x = rad_to_deg(n)
-    return 4 * x * (180 - x) / 40500 - x * (180 - x)
-}
-
 mkfunc rad_to_deg(rad){
     var PI = 3.14159265358979
     return rad * 180 / PI
@@ -32,6 +27,27 @@ mkfunc abs(x){
         return x
     }
 }
+
+mkfunc factorial(n){
+    var result = 1
+    while (n > 0){
+        result = result * n
+        n = n - 1
+    }
+    return result
+}
+
+mkfunc sin(x){
+    var tolerance = 0.000001
+    var result = 0
+    var n = 1
+    while (abs(result - sin_taylor(x)) > tolerance){
+        result = result + ((1-2)^ (n - 1) * (x) ^ (2 * n - 1)) / factorial(2 * n - 1)
+        n = n + 1
+    }
+    return result
+}
+
 
 mkfunc sqrt(x){
     var tolerance = 0.000001

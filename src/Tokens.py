@@ -1,6 +1,9 @@
 import re
 
+
 class TOKENTYPE:
+    EOF = "EOF"
+    NOT_EQUAL = "NOT_EQUAL"
     LBRACK = "LBRACK"
     RBRACK = "RBRACK"
     COMMENT = "COMMENT"
@@ -39,7 +42,27 @@ class TOKENTYPE:
     MUL = "MUL"
     DIV = "DIV"
 
+COMPARISON_OPERATORS = (
+    TOKENTYPE.NOT_EQUAL,
+    TOKENTYPE.LESS_THAN,
+    TOKENTYPE.GREATER_THAN,
+    TOKENTYPE.LESS_THAN_OR_EQUAL,
+    TOKENTYPE.GREATER_THAN_OR_EQUAL,
+    TOKENTYPE.IS_EQUAL,
+    TOKENTYPE.NOT_EQUAL
+)
+BINARY_OPERATORS = (
+    TOKENTYPE.PLUS,
+    TOKENTYPE.MINUS,
+    TOKENTYPE.MUL,
+    TOKENTYPE.DIV,
+    TOKENTYPE.MODULO,
+    TOKENTYPE.CARAT
+)
+
 TOKEN_RULES = {
+    TOKENTYPE.EOF: r"\w\b\w", # unmatchable
+    TOKENTYPE.NOT_EQUAL: r"!=",
     TOKENTYPE.LBRACK: r"\[",
     TOKENTYPE.RBRACK: r"\]",
     TOKENTYPE.COMMENT: r"\/\/.*",
@@ -63,8 +86,8 @@ TOKEN_RULES = {
     TOKENTYPE.COMMA: r",",
     TOKENTYPE.FUNCTION_DECLARATION: r"mkfunc",
     TOKENTYPE.SEMICOLON: r";",
-    TOKENTYPE.INTEGER: r"( -)?(\d+)",
-    TOKENTYPE.FLOAT: r"-?(\d+\.\d+)",
+    TOKENTYPE.INTEGER: r"(\d+)",
+    TOKENTYPE.FLOAT: r"(\d+\.\d+)",
     TOKENTYPE.LPAREN: r"\(",
     TOKENTYPE.RPAREN: r"\)",
     TOKENTYPE.LBRACE: r"\{",
@@ -82,6 +105,7 @@ TOKEN_RULES = {
 # in this list, index zero is checked first, then index one, etc.
 TOKEN_PRIORITY = [
     # ----- special -----
+    TOKENTYPE.EOF,
     TOKENTYPE.COMMENT,
     # ----- data types -----
     TOKENTYPE.FLOAT,
@@ -111,6 +135,7 @@ TOKEN_PRIORITY = [
     # ----- operators -----
     TOKENTYPE.MODULO,
     TOKENTYPE.CARAT,
+    TOKENTYPE.NOT_EQUAL,
     TOKENTYPE.LESS_THAN_OR_EQUAL,
     TOKENTYPE.GREATER_THAN_OR_EQUAL,
     TOKENTYPE.LESS_THAN,
