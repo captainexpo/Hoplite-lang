@@ -259,7 +259,7 @@ def parse_program(tokens):
 
 
 if __name__ == "__main__":
-    import lexer_class, json
+    import Lexer, json
     program =  """
     mkfunc add(a, b) {
         return a + b
@@ -280,5 +280,5 @@ if __name__ == "__main__":
     print(z)
 
     """
-    tokens = lexer_class.tokenize(program)
+    tokens = Lexer.tokenize(program)
     print(simple_ast_format(parse_program(tokens)))
