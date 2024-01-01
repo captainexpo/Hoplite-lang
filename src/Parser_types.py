@@ -1,10 +1,16 @@
 class Statement:
     def __repr__(self):
         return "Statement()"
+    
+    def AsLiteral(self):
+        return None
 
 class Expression:
     def __repr__(self):
         return "Expression()"
+    def AsLiteral(self):
+        return None
+    
 
 class Block(Statement):
     def __init__(self, statements):
@@ -28,6 +34,9 @@ class NumberLiteral(Expression):
 
     def __repr__(self):
         return f"NumberLiteral({self.type}, {self.value})"
+    
+    def AsLiteral(self):
+        return self.value
 
 class MethodCall(Expression):
     def __init__(self, variable, method_name, arguments):
@@ -45,19 +54,31 @@ class StringLiteral(Expression):
 
     def __repr__(self):
         return f"StringLiteral({self.value})"
+    
+    def AsLiteral(self):
+        return self.value
 
 class ArrayLiteral(Expression):
     def __init__(self, elements):
         self.elements = elements
+        print("AWEAWEAWEAWE",self.elements)
         self.methods = {
             "append": lambda item: self.elements.append(item),
             "pop": lambda: self.elements.pop(),
             "at": lambda index: self.elements[index],
         }
         
-
     def __repr__(self):
         return f"ArrayLiteral({self.elements})"
+    
+    def AsLiteral(self):
+        output = "["
+        for i in self.elements:
+            print(i)
+            output += f"{i.AsLiteral()}, "
+        output = output[:-2]
+        output += "]"
+        return output
 
 class BooleanLiteral(Expression):
     def __init__(self, value):
@@ -65,6 +86,9 @@ class BooleanLiteral(Expression):
 
     def __repr__(self):
         return f"BooleanLiteral({self.value})"
+    
+    def AsLiteral(self):
+        return self.value == "true"
 
 class Variable(Expression):
     def __init__(self, name):
@@ -73,6 +97,9 @@ class Variable(Expression):
     def __repr__(self):
         return f"Variable({self.name})"
     
+    def AsLiteral(self):
+        return self.name
+
 
 class FunctionDeclaration(Statement):
     def __init__(self, name, parameters, body):
@@ -82,6 +109,9 @@ class FunctionDeclaration(Statement):
 
     def __repr__(self):
         return f"FunctionDeclaration({self.name}, {self.parameters}, {self.body})"
+    
+    def AsLiteral(self):
+        return f'function {self.name}'
 
 class FunctionCall(Expression):
     def __init__(self, name, arguments):
@@ -90,6 +120,8 @@ class FunctionCall(Expression):
 
     def __repr__(self):
         return f"FunctionCall({self.name}, {self.arguments})"
+    
+
 
 class Assignment(Statement):
     def __init__(self, variable, value):
@@ -133,6 +165,9 @@ class Literal(Expression):
 
     def __repr__(self):
         return f"Literal({self.value})"
+    
+    def AsLiteral(self):
+        return self.value
 
 class UnaryOperation(Expression):
     def __init__(self, op, operand):
