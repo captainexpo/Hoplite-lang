@@ -23,14 +23,23 @@ class Parser:
             self.eat(Token.TOKENTYPE.COMMENT)
         elif self.current_token().type == Token.TOKENTYPE.WHILE:
             return self.parse_while_statement()
+        elif self.current_token().type == Token.TOKENTYPE.FOR:
+            return self.parse_for_loop()
+        
         elif self.current_token().type == Token.TOKENTYPE.FUNCTION_DECLARATION:
             return self.parse_function_declaration()
         elif self.current_token().type == Token.TOKENTYPE.VAR:
             return self.parse_variable_declaration()
+        elif self.current_token().type in Token.AUGMENTED_ASSIGNMENT_OPERATORS:
+            return self.parse_augmented_assignment()
         elif self.current_token().type == Token.TOKENTYPE.NAME:
             lookahead_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
-            if lookahead_token and lookahead_token.type == Token.TOKENTYPE.LPAREN:
+            if lookahead_token and lookahead_token.type in Token.AUGMENTED_ASSIGNMENT_OPERATORS:
+                return self.parse_augmented_assignment()
+            elif lookahead_token and lookahead_token.type == Token.TOKENTYPE.LPAREN:
                 return self.parse_function_call()
+            elif lookahead_token and lookahead_token.type == Token.TOKENTYPE.DOT:
+                return self.parse_method_call(Variable(self.current_token().value))
             else:
                 return self.parse_assignment()
         elif self.current_token().type == Token.TOKENTYPE.IF:
@@ -45,6 +54,40 @@ class Parser:
             statements.append(self.get_statement())
         return statements
 
+    def parse_for_loop(self):
+        self.eat(Token.TOKENTYPE.FOR)
+        self.eat(Token.TOKENTYPE.LPAREN)
+
+        # Initial expression - can be a variable declaration or any expression
+        init = None
+        if self.current_token().type == Token.TOKENTYPE.VAR:
+            init = self.parse_variable_declaration()
+        else:
+            init = self.parse_expression()
+            if isinstance(init, Expression):
+                init = init.expr  # unwrap expression from statement if needed
+        self.eat(Token.TOKENTYPE.SEMICOLON)
+
+        # Condition - any expression
+        condition = self.parse_expression()
+        self.eat(Token.TOKENTYPE.SEMICOLON)
+
+        # Update - can be an assignment or any expression
+        update = None
+        if self.current_token().type == Token.TOKENTYPE.NAME:
+            if self.tokens[self.pos + 1].type in Token.AUGMENTED_ASSIGNMENT_OPERATORS:
+                update = self.parse_augmented_assignment()
+            else:
+                update = self.parse_assignment()
+        else:
+            update = self.parse_expression()
+
+        self.eat(Token.TOKENTYPE.RPAREN)
+        self.eat(Token.TOKENTYPE.LBRACE)
+        body = self.parse_block()
+        self.eat(Token.TOKENTYPE.RBRACE)
+
+        return ForStatement(init, condition, update, body)
 
     def parse_function_declaration(self):
         self.eat(Token.TOKENTYPE.FUNCTION_DECLARATION)
@@ -107,6 +150,8 @@ class Parser:
                 lookahead_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
                 if lookahead_token and lookahead_token.type == Token.TOKENTYPE.LPAREN:
                     statements.append(self.parse_function_call())
+                elif lookahead_token and lookahead_token.type in Token.AUGMENTED_ASSIGNMENT_OPERATORS:
+                    statements.append(self.parse_augmented_assignment())
                 else:
                     statements.append(self.parse_assignment())
             else:
@@ -125,6 +170,15 @@ class Parser:
         expr = self.parse_expression()
         return VariableDeclaration(var_name, expr)
 
+    def parse_augmented_assignment(self):
+        # get asssignment as variable_name, operator, right hand side
+        var_name = self.current_token().value
+        self.eat(Token.TOKENTYPE.NAME)
+        operator = self.current_token().type
+        self.eat(operator)
+        expr = self.parse_expression()
+        print(var_name,operator,expr)
+        return AugmentedAssignment(var_name, operator, expr)
     def parse_assignment(self):
         var_name = self.current_token().value
         self.eat(Token.TOKENTYPE.NAME)
@@ -162,6 +216,25 @@ class Parser:
 
         return node
 
+    def parse_array_literal(self):
+        self.eat(Token.TOKENTYPE.LBRACK)
+        elements = []
+        if self.current_token().type != Token.TOKENTYPE.RBRACK:
+            elements.append(self.parse_expression())
+            while self.current_token().type == Token.TOKENTYPE.COMMA:
+                self.eat(Token.TOKENTYPE.COMMA)
+                elements.append(self.parse_expression())
+        self.eat(Token.TOKENTYPE.RBRACK)
+        return ArrayLiteral(elements)
+    def parse_method_call(self, variable):
+        self.eat(Token.TOKENTYPE.NAME)
+        self.eat(Token.TOKENTYPE.DOT)
+        method_name = self.current_token().value
+        self.eat(Token.TOKENTYPE.NAME)
+        self.eat(Token.TOKENTYPE.LPAREN)
+        arguments = self.parse_arguments()
+        self.eat(Token.TOKENTYPE.RPAREN)
+        return MethodCall(variable, method_name, arguments)
     def parse_atom(self):
         token = self.current_token()
         if token.type == Token.TOKENTYPE.BANG:
@@ -189,11 +262,15 @@ class Parser:
         elif token.type == Token.TOKENTYPE.FALSE:
             self.eat(Token.TOKENTYPE.FALSE)
             return BooleanLiteral("false")
+        elif token.type == Token.TOKENTYPE.LBRACK:
+            return self.parse_array_literal()
         elif token.type == Token.TOKENTYPE.NAME:
             # Check if it's a function call
             lookahead_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
             if lookahead_token and lookahead_token.type == Token.TOKENTYPE.LPAREN:
                 return self.parse_function_call()
+            elif lookahead_token and lookahead_token.type == Token.TOKENTYPE.DOT:
+                return self.parse_method_call(Variable(token.value))
             else:
                 self.eat(Token.TOKENTYPE.NAME)
                 return Variable(token.value)
@@ -261,24 +338,10 @@ def parse_program(tokens):
 if __name__ == "__main__":
     import Lexer, json
     program =  """
-    mkfunc add(a, b) {
-        return a + b
-    }
-    var x = add(2, 3)
-    print(x)
-    var y = !true == false
-    print(y)
-    print(!(x >= 2))
-    x = x % 3
-    var z = 2
-    mkfunc random(a) {
-        var k = a * 2
-        k = k + 1
-        return (a + z) * 2 % 789 + -21354.1315 * k
-    }
-    z = random(z) / 5 < 2
-    print(z)
+    var x = [1,2,3,4,5,6,7,8,9,10]
+    print(x.sort())
 
     """
     tokens = Lexer.tokenize(program)
+    print(tokens)
     print(simple_ast_format(parse_program(tokens)))

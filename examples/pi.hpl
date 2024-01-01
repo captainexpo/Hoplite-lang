@@ -13,11 +13,7 @@ while (j < iterations) {
         total = total - num_dom
     }
     denominator = denominator + 2
-    if (i) {
-        i = false
-    } else {
-        i = true
-    }
+    i = !i
     j = j + 1
     print(total)
 }

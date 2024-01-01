@@ -22,6 +22,21 @@ class Evaluator:
         elif isinstance(node, PTypes.Assignment):
             scope[node.variable] = self.evaluate(node.value, scope)
 
+        elif isinstance(node, PTypes.AugmentedAssignment):
+            
+            right = self.evaluate(node.value, scope)
+            if node.op == Token.TOKENTYPE.PLUS_EQUAL:
+                scope[node.variable] += right
+            elif node.op == Token.TOKENTYPE.MINUS_EQUAL:
+                scope[node.variable] -= right
+            elif node.op == Token.TOKENTYPE.TIMES_EQUAL:
+                scope[node.variable] *= right
+            elif node.op == Token.TOKENTYPE.DIVIDE_EQUAL:
+                scope[node.variable] /= right
+            elif node.op == Token.TOKENTYPE.MODULO_EQUAL:
+                scope[node.variable] %= right
+            elif node.op == Token.TOKENTYPE.CARAT_EQUAL:
+                scope[node.variable] **= right
         elif isinstance(node, PTypes.BinaryOperation):
             left = self.evaluate(node.left, scope)
             right = self.evaluate(node.right, scope)
@@ -45,7 +60,8 @@ class Evaluator:
                 return scope[node.name]
             else:
                 raise Exception(f"Undefined variable '{node.name}'")
-
+        elif isinstance(node, PTypes.ArrayLiteral):
+            return [self.evaluate(element, scope) for element in node.elements]
         elif isinstance(node, PTypes.FunctionCall):
             return self.handle_function_call(node, scope)
         elif isinstance(node, PTypes.IfStatement):
@@ -68,6 +84,16 @@ class Evaluator:
                     result = self.evaluate(statement, local_scope)
                     if isinstance(statement, PTypes.ReturnStatement):
                         return result
+        elif isinstance(node, PTypes.ForStatement):
+            self.evaluate(node.init, local_scope)
+            while self.evaluate(node.condition, local_scope):
+                for statement in node.body:
+                    result = self.evaluate(statement, local_scope)
+                    if isinstance(statement, PTypes.ReturnStatement):
+                        return result
+                self.evaluate(node.update, local_scope)
+        elif isinstance(node, PTypes.MethodCall):
+            return self.handle_method_call(node, scope)
         elif isinstance(node, PTypes.ComparisonOperation):
             left = self.evaluate(node.left, scope)
             right = self.evaluate(node.right, scope)
@@ -119,7 +145,20 @@ class Evaluator:
             return time.time()
         else:
             raise Exception(f"Unknown standard function '{node.name}'")
-    
+    def handle_method_call(self, node: PTypes.MethodCall, scope):
+        variable = node.variable
+        method = node.method
+        arguments = node.arguments
+        var_value = self.evaluate(variable, scope)
+        print(var_value,variable)
+        variable_methods = var_value.methods if hasattr(var_value, "methods") else {}
+
+        if method in variable_methods:
+            return variable_methods[method](arguments)
+        else:
+            raise Exception(f"Variable '{variable.name}' does not have method '{method}'")
+
+
     def handle_function_call(self, node, scope):
         if node.name in self.std_functions:
             return self.handle_std_function_call(node, scope)
@@ -152,9 +191,14 @@ class Evaluator:
 if __name__ == "__main__":
     ev = Evaluator()
     program = """
-    print(time())"""
+    var x = [2]
+    x.append(3)
+    print(x)
+    """
     tokens = Lexer.tokenize(program)
+    print(tokens)
     ast = Parser.parse_program(tokens)
+    print(ast)
     results = ev.execute(ast)
     for result in results:
         print(result)

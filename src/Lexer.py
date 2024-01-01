@@ -55,6 +55,8 @@ def tokenize(text):
 if __name__ == "__main__":
     print(
         tokenize(
-            """print(!true)"""
+            """for(var i = 0, i < 10, i += 1) {
+                print(i)
+            }"""
         )
     )

@@ -29,13 +29,36 @@ class NumberLiteral(Expression):
     def __repr__(self):
         return f"NumberLiteral({self.type}, {self.value})"
 
+class MethodCall(Expression):
+    def __init__(self, variable, method_name, arguments):
+        self.variable = variable
+        self.method = method_name
+        self.arguments = arguments
+
+    def __repr__(self):
+        arguments_str = ", ".join([str(arg) for arg in self.arguments])
+        return f"MethodCall({self.variable}, {self.method}, [{arguments_str}])"
+
 class StringLiteral(Expression):
     def __init__(self, value):
         self.value = value
 
     def __repr__(self):
         return f"StringLiteral({self.value})"
-    
+
+class ArrayLiteral(Expression):
+    def __init__(self, elements):
+        self.elements = elements
+        self.methods = {
+            "append": lambda item: self.elements.append(item),
+            "pop": lambda: self.elements.pop(),
+            "at": lambda index: self.elements[index],
+        }
+        
+
+    def __repr__(self):
+        return f"ArrayLiteral({self.elements})"
+
 class BooleanLiteral(Expression):
     def __init__(self, value):
         self.value = value
@@ -49,6 +72,7 @@ class Variable(Expression):
 
     def __repr__(self):
         return f"Variable({self.name})"
+    
 
 class FunctionDeclaration(Statement):
     def __init__(self, name, parameters, body):
@@ -74,6 +98,16 @@ class Assignment(Statement):
 
     def __repr__(self):
         return f"Assignment({self.variable}, {self.value})"
+
+class AugmentedAssignment(Statement):
+    """Examples: x += 2, x -= 2, x *= 2 , x /= 2, x ^= 2, etc"""
+    def __init__(self, variable, op, value):
+        self.variable = variable # E.g: x
+        self.op = op # E.g: +=, -=, *=, /=, ^=, etc
+        self.value = value # E.g: 5
+
+    def __repr__(self):
+        return f"AugmentedAssignment({self.variable} {self.op}  {self.value})"
 
 class BinaryOperation(Expression):
     def __init__(self, left, op, right):
@@ -132,3 +166,13 @@ class WhileStatement(Statement):
 
     def __repr__(self):
         return f"WhileStatement({self.condition}, {self.body})"
+
+class ForStatement(Statement):
+    def __init__(self, init, condition, update, body):
+        self.init = init
+        self.condition = condition
+        self.update = update
+        self.body = body
+
+    def __repr__(self):
+        return f"ForStatement({self.init}, {self.condition}, {self.update}, {self.body})"
