@@ -58,29 +58,28 @@ class Parser:
         self.eat(Token.TOKENTYPE.FOR)
         self.eat(Token.TOKENTYPE.LPAREN)
 
-        # Initial expression - can be a variable declaration or any expression
+        # Initial expression - can be a variable declaration or any statement/expression
         init = None
-        if self.current_token().type == Token.TOKENTYPE.VAR:
-            init = self.parse_variable_declaration()
-        else:
-            init = self.parse_expression()
+        if self.current_token().type != Token.TOKENTYPE.SEMICOLON:
+            init = self.get_statement()
             if isinstance(init, Expression):
                 init = init.expr  # unwrap expression from statement if needed
+
         self.eat(Token.TOKENTYPE.SEMICOLON)
 
         # Condition - any expression
-        condition = self.parse_expression()
+        condition = None
+        if self.current_token().type != Token.TOKENTYPE.SEMICOLON:
+            condition = self.parse_expression()
+
         self.eat(Token.TOKENTYPE.SEMICOLON)
 
-        # Update - can be an assignment or any expression
+        # Update - can be an assignment or any expression/statement
         update = None
-        if self.current_token().type == Token.TOKENTYPE.NAME:
-            if self.tokens[self.pos + 1].type in Token.AUGMENTED_ASSIGNMENT_OPERATORS:
-                update = self.parse_augmented_assignment()
-            else:
-                update = self.parse_assignment()
-        else:
-            update = self.parse_expression()
+        if self.current_token().type != Token.TOKENTYPE.RPAREN:
+            update = self.get_statement()
+            if isinstance(update, Expression):
+                update = update.expr  # unwrap expression from statement if needed
 
         self.eat(Token.TOKENTYPE.RPAREN)
         self.eat(Token.TOKENTYPE.LBRACE)
@@ -88,6 +87,7 @@ class Parser:
         self.eat(Token.TOKENTYPE.RBRACE)
 
         return ForStatement(init, condition, update, body)
+
 
     def parse_function_declaration(self):
         self.eat(Token.TOKENTYPE.FUNCTION_DECLARATION)
