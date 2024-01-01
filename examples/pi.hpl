@@ -6,16 +6,17 @@ var iterations = 1000000
 var j = 0
 
 while (j < iterations) {
-    var num_dom = numerator / denominator
-    if (i) {
-        total = total + num_dom
+    if (i == true) {
+        //print("ADDING")
+        total += (numerator / denominator)
     } else {
-        total = total - num_dom
+        //print("SUBTRACTING")
+        total -= (numerator / denominator)
     }
-    denominator = denominator + 2
+    denominator += 2.0
     i = !i
-    j = j + 1
-    print(total)
+    print(i)
+    j += 1
 }
 
-print(total) 
+print(4*total) 

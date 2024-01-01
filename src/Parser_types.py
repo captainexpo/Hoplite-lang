@@ -13,6 +13,32 @@ class Expression:
     def __repr__(self):
         return ''
     
+class DataType:
+    def __init__(self, name, methods, value):
+        self.name = name
+        self.methods = methods
+        self.value = value
+
+    def add(self, other): raise Exception(f"Cannot add {self} and {other}")
+    def subtract(self, other):raise Exception(f"Cannot sub {self} and {other}")
+    def multiply(self, other):raise Exception(f"Cannot mul {self} and {other}")
+    def divide(self, other):raise Exception(f"Cannot div {self} and {other}")
+    def modulo(self, other):raise Exception(f"Cannot mod {self} and {other}")
+    def power(self, other):raise Exception(f"Cannot pow {self} and {other}")
+    def unary_not(self):raise Exception(f"Cannot perform !{self}")
+    def unary_minus(self):raise Exception(f"Cannot perform -{self}")
+    def is_equal(self, other):raise Exception(f"Cannot compare {self} and {other}")
+    def is_not_equal(self, other):raise Exception(f"Cannot compare {self} and {other}")
+    def is_less_than(self, other):raise Exception(f"Cannot compare {self} and {other}")
+    def is_less_than_or_equal(self, other):raise Exception(f"Cannot compare {self} and {other}")
+    def is_greater_than(self, other):raise Exception(f"Cannot compare {self} and {other}")
+    def is_greater_than_or_equal(self, other):raise Exception(f"Cannot compare {self} and {other}")
+
+    def AsLiteral(self):
+        return f"DataType({self.name}, {self.methods}, {self.value})"
+
+    def __repr__(self):
+        return self.value
 
 class Block(Statement):
     def __init__(self, statements):
@@ -35,27 +61,29 @@ class ReturnStatement(Statement):
         return ''
     
 
-class NumberLiteral(Expression):
+class NumberLiteral(DataType):
     def __init__(self, type, value):
         self.type = type
         self.value = value
 
     def AsLiteral(self):
         return f"NumberLiteral({self.type}, {self.value})"
-    def Add(self, other):
+    def add(self, other):
         return NumberLiteral(self.type, self.value + other.value)
-    def Subtract(self, other):
+    def subtract(self, other):
         return NumberLiteral(self.type, self.value - other.value)
-    def Multiply(self, other):
+    def multiply(self, other):
         return NumberLiteral(self.type, self.value * other.value)
-    def Divide(self, other):
+    def divide(self, other):
         return NumberLiteral(self.type, self.value / other.value)
-    def Modulo(self, other):
+    def modulo(self, other):
         return NumberLiteral(self.type, self.value % other.value)
-    def Power(self, other):
+    def power(self, other):
         return NumberLiteral(self.type, self.value ** other.value)
     def __repr__(self):
-        return self.value
+        return str(self.value)
+    def unary_minus(self):
+        return NumberLiteral(self.type, -self.value)
 
 class MethodCall(Expression):
     def __init__(self, variable, method_name, arguments):
@@ -70,23 +98,30 @@ class MethodCall(Expression):
     def __repr__(self):
         return ''
 
-class StringLiteral(Expression):
+class StringLiteral(DataType):
     def __init__(self, value):
         self.value = value
 
     def AsLiteral(self):
         return f"StringLiteral({self.value})"
-    
+    def add(self, other):
+        if isinstance(other, StringLiteral):
+            return StringLiteral(self.value + other.value)
+        raise Exception(f"Cannot add \"{self}\" and {other}")
+    def multiply(self, other):
+        if isinstance(other, NumberLiteral):
+            return StringLiteral(self.value * other.value)
+        raise Exception(f"Cannot multiply \"{self}\" and {other}")
     def __repr__(self):
         return self.value
 
-class ArrayLiteral(Expression):
+class ArrayLiteral(DataType):
     def __init__(self, elements):
         self.elements = elements
         self.methods = {
             "append": lambda item: self.append(item),
             "pop": lambda i: self.elements.pop(),
-            "at": lambda index: self.elements[index],
+            "at": lambda index: self.elements[index[0].value],
         }
     def append(self, item):
         for i in item:
@@ -102,15 +137,26 @@ class ArrayLiteral(Expression):
         output += "]"
         return output
 
-class BooleanLiteral(Expression):
+class BooleanLiteral(DataType):
     def __init__(self, value):
-        self.value = value
-
+        self.value = value == "true"
     def AsLiteral(self):
         return f"BooleanLiteral({self.value})"
-    
-    def __repr__(self):
-        return self.value == "true"
+    def unary_not(self) -> 'BooleanLiteral':
+        print("VASEAWEAWEAWE",self.value, not self.value)
+        return BooleanLiteral(self.value == False)
+    def is_equal(self, other):
+        if isinstance(other, BooleanLiteral):
+            return BooleanLiteral(self.value == other.value)
+        else:
+            return BooleanLiteral(False)
+    def is_not_equal(self, other):
+        if isinstance(other, BooleanLiteral):
+            return BooleanLiteral(self.value != other.value)
+        else:
+            return BooleanLiteral(True)
+    def __repr__(self): 
+        return str(self.value)
 
 class Variable(Expression):
     def __init__(self, name):
@@ -205,7 +251,7 @@ class UnaryOperation(Expression):
         return f"UnaryOperation({self.op}, {self.operand})"
 
     def __repr__(self):
-        return ''
+        return f'UnaryOperation({self.op}, {self.operand})'
     
 
 class VariableDeclaration(Statement):
@@ -223,11 +269,11 @@ class VariableDeclaration(Statement):
 class IfStatement (Statement):
     def __init__(self, condition, body, else_body=None):
         self.condition = condition
-        self.body = body
+        self.if_body = body
         self.else_body = else_body
 
     def AsLiteral(self):
-        return f"IfStatement({self.condition}, {self.body}, {self.else_body})"
+        return f"IfStatement({self.condition}, {self.if_body}, {self.else_body})"
 
     def __repr__(self):
         return ''

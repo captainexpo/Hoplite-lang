@@ -85,6 +85,8 @@ class Parser:
         self.eat(Token.TOKENTYPE.LBRACE)
         body = self.parse_block()
         self.eat(Token.TOKENTYPE.RBRACE)
+        for statement in body:
+            print(statement.AsLiteral())
 
         return ForStatement(init, condition, update, body)
 
@@ -152,10 +154,15 @@ class Parser:
                     statements.append(self.parse_function_call())
                 elif lookahead_token and lookahead_token.type in Token.AUGMENTED_ASSIGNMENT_OPERATORS:
                     statements.append(self.parse_augmented_assignment())
+                elif lookahead_token and lookahead_token.type == Token.TOKENTYPE.DOT:
+                    statements.append(self.parse_method_call(Variable(self.current_token().value)))
                 else:
                     statements.append(self.parse_assignment())
             else:
                 self.error("Unexpected token in block " + self.current_token().type)
+        #for i in statements:
+        #    print(i.AsLiteral())
+        
         return statements
     def parse_return_statement(self):
         self.eat(Token.TOKENTYPE.RETURN)
@@ -177,7 +184,7 @@ class Parser:
         operator = self.current_token().type
         self.eat(operator)
         expr = self.parse_expression()
-        print(var_name,operator,expr)
+        #print(var_name,operator,expr)
         return AugmentedAssignment(var_name, operator, expr)
     def parse_assignment(self):
         var_name = self.current_token().value
@@ -248,14 +255,14 @@ class Parser:
             return UnaryOperation(Token.TOKENTYPE.MINUS, operand)
         elif token.type == Token.TOKENTYPE.INTEGER:
             self.eat(Token.TOKENTYPE.INTEGER)
-            return NumberLiteral("int", token.value)
+            return NumberLiteral("int", int(token.value))
         elif token.type == Token.TOKENTYPE.STRING:
             self.eat(Token.TOKENTYPE.STRING)
             token.value = token.value[1:-1]
             return StringLiteral(token.value)
         elif token.type == Token.TOKENTYPE.FLOAT:
             self.eat(Token.TOKENTYPE.FLOAT)
-            return NumberLiteral("float", token.value)
+            return NumberLiteral("float", float(token.value))
         elif token.type == Token.TOKENTYPE.TRUE:
             self.eat(Token.TOKENTYPE.TRUE)
             return BooleanLiteral("true")

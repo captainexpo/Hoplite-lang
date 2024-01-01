@@ -23,7 +23,9 @@ class Evaluator:
             scope[node.variable] = self.evaluate(node.value, scope)
 
         elif isinstance(node, PTypes.AugmentedAssignment):
-            scope[node.variable] = self.perform_binary_operation(node.op, scope[node.variable], self.evaluate(node.value, scope))
+            #print("VAR VALUE", type(scope[node.variable]))
+            #print("BBBBB", type(self.evaluate(node.value, scope)))
+            scope[node.variable] = self.perform_binary_operation(node.op, scope[node.variable], self.evaluate(node.value, scope), scope)
 
         elif isinstance(node, PTypes.BinaryOperation):
             if not isinstance(node.left, PTypes.Variable):
@@ -32,11 +34,10 @@ class Evaluator:
                 left = node.left
 
             right = self.evaluate(node.right, scope)
-            return self.perform_binary_operation(node.op, left, right)
+            return self.perform_binary_operation(node.op, left, right, scope)
 
         elif isinstance(node, PTypes.UnaryOperation):
-            operand = self.evaluate(node.operand, scope)
-            return self.perform_unary_operation(node.op, operand)
+            return self.perform_unary_operation(node.op, self.evaluate(node.operand,scope))
 
         elif isinstance(node, PTypes.NumberLiteral):
             return node  # Return the NumberLiteral object itself
@@ -45,7 +46,7 @@ class Evaluator:
             return node  # Return the StringLiteral object itself
 
         elif isinstance(node, PTypes.BooleanLiteral):
-            return node.value == 'true'
+            return node
 
         elif isinstance(node, PTypes.Variable):
             var_value = scope.get(node.name)
@@ -84,8 +85,13 @@ class Evaluator:
 
         elif isinstance(node, PTypes.ForStatement):
             self.evaluate(node.init, scope)
-            while self.evaluate(node.condition, scope):
+            #print("AEWAWEAWEAWE",self.evaluate(node.condition, scope))
+            #print(node.AsLiteral())
+            while self.evaluate(node.condition, scope).value == True:
+
                 for statement in node.body:
+                    
+                    #print(statement.AsLiteral())
                     result = self.evaluate(statement, scope)
                     if isinstance(result, ReturnValue):
                         return result.value
@@ -103,11 +109,12 @@ class Evaluator:
             raise Exception(f"Unknown node type '{node}'")
 
 
-    def perform_comparison_operation(self, op, left, right):
+    def perform_comparison_operation(self, op, left: PTypes.DataType, right: PTypes.DataType):
         left = left.value if isinstance(left, PTypes.NumberLiteral) else left
         right = right.value if isinstance(right, PTypes.NumberLiteral) else right
-        if op == Token.TOKENTYPE.EQUALS:
-            return PTypes.BooleanLiteral(left == right)
+        if op == Token.TOKENTYPE.IS_EQUAL:
+            print(left, right)
+            return left.is_equal(right)
         elif op == Token.TOKENTYPE.NOT_EQUAL:
             return PTypes.BooleanLiteral(left != right)
         elif op == Token.TOKENTYPE.LESS_THAN:
@@ -121,34 +128,31 @@ class Evaluator:
         else:
             raise Exception(f"Unsupported comparison operation '{op}'")
 
-    def perform_binary_operation(self, op, left: PTypes.NumberLiteral, right: PTypes.NumberLiteral):
-        left = left.value if isinstance(left, PTypes.NumberLiteral) else self.evaluate(left)
-        print(left.type, right.type)
-        print(left.value, right.value)
-        right = right.value
-        print(type(left), type(right))
-        print(left, right)
+    def perform_binary_operation(self, op, left: PTypes.NumberLiteral, right: PTypes.NumberLiteral, scope=None):
+        left = self.evaluate(left, scope)
+        right = self.evaluate(right, scope)
         if op == Token.TOKENTYPE.PLUS or op == Token.TOKENTYPE.PLUS_EQUAL:
-            return left.Add(right)
+            return left.add(right)
         elif op == Token.TOKENTYPE.MINUS or op == Token.TOKENTYPE.MINUS_EQUAL:
-            return left.Subtract(right)
+            return left.subtract(right)
         elif op == Token.TOKENTYPE.MUL or op == Token.TOKENTYPE.TIMES_EQUAL:
-            return left.Multiply(right)
+            return left.multiply(right)
         elif op == Token.TOKENTYPE.DIV or op == Token.TOKENTYPE.DIVIDE_EQUAL:
-            return left.Divide(right)
+            return left.divide(right)
         elif op == Token.TOKENTYPE.MODULO or op == Token.TOKENTYPE.MODULO_EQUAL:
-            return left.Modulo(right)
+            return left.modulo(right)
         elif op == Token.TOKENTYPE.CARAT or op == Token.TOKENTYPE.CARAT_EQUAL:
-            return left.Power(right)
+            return left.power(right)
         else:
             raise Exception(f"Unsupported binary operation '{op}'")
 
-    def perform_unary_operation(self, op, operand):
+    def perform_unary_operation(self, op, operand: PTypes.DataType):
         operand = operand.value if isinstance(operand, PTypes.NumberLiteral) else operand
         if op == Token.TOKENTYPE.MINUS:
-            return PTypes.NumberLiteral('',-operand)
+            return operand.unary_minus()
         elif op == Token.TOKENTYPE.BANG:
-            return PTypes.BooleanLiteral(not operand)
+            print("BANG", operand.unary_not())
+            return operand.unary_not()
         else:
             raise Exception(f"Unsupported unary operation '{op}'")
 
@@ -165,10 +169,12 @@ class Evaluator:
         variable = node.variable
         method = node.method
         arguments = node.arguments
+        n_args = [self.evaluate(arg, scope) for arg in arguments]
+        #print(variable, method, arguments, scope)
         var_value = self.evaluate(variable, scope)
         variable_methods = var_value.methods if hasattr(var_value, "methods") else {}
         if method in variable_methods:
-            return variable_methods[method](arguments)
+            return variable_methods[method](n_args)
         else:
             raise Exception(f"Variable '{variable.name}' does not have method '{method}'")
 
@@ -205,19 +211,12 @@ class Evaluator:
 if __name__ == "__main__":
     ev = Evaluator()
     program = """
-    var x = [2]
-    x.append(3)
-    print(x)
-    print("POPPING")
-    print(x.pop())
-    for (var i = 0; i < 10; i = i + 1) {
-        print(i)
-    }
-    x.append([4,5,6])
-    print(x)
+    var a = true
+    a = !a
+    print(!a)
     """
     tokens = Lexer.tokenize(program)
-    print(tokens)
+    #print(tokens)
     ast = Parser.parse_program(tokens)
     for i in ast:
         print(i.AsLiteral())
