@@ -4,16 +4,23 @@ class Lexer:
     def __init__(self, text=None):
         self.text = text
         self.pos = 0
-        self.current_char = self.text[self.pos]
+        self.current_line = 1
+        self.current_column = 1
+        self.current_char = self.text[self.pos] if self.text else None
         self.tokens = []
         self.token_rules = token.TOKEN_RULES
         self.token_priority = token.TOKEN_PRIORITY
 
     def error(self, character=''):
-        raise Exception("Invalid character: " + character)
+        raise Exception(f"Invalid character: {character} at line {self.current_line}, column {self.current_column}")
 
     def advance(self):
+        if self.current_char == '\n':
+            self.current_line += 1
+            self.current_column = 0
         self.pos += 1
+        self.current_column += 1
+
         if self.pos > len(self.text) - 1:
             self.current_char = None
         else:
@@ -21,6 +28,11 @@ class Lexer:
 
     def skip_whitespace(self):
         while self.current_char is not None and self.current_char.isspace():
+            if self.current_char == '\n':
+                self.current_line += 1
+                self.current_column = 0
+            else:
+                self.current_column += 1
             self.advance()
 
     def get_next_token(self):
@@ -28,26 +40,32 @@ class Lexer:
             for token_type in self.token_priority:
                 match = self.token_rules[token_type].match(self.text, self.pos)
                 if match:
-                    self.pos = match.end()
-                    if self.pos >= len(self.text):  # Check to prevent index out of range
+                    token_value = match.group(0)
+                    token_start = match.start()
+                    token_end = match.end()
+                    line = self.current_line
+                    column = self.current_column + (token_start - self.pos)
+                    self.pos = token_end
+
+                    if self.pos >= len(self.text):
                         self.current_char = None
                     else:
                         self.current_char = self.text[self.pos]
-                    if match.group(0) is not None:
-                        return token.Token(token_type, match.group(0))
+
+                    if token_value:
+                        return token.Token(token_type, token_value, line=line, column=column)
             self.error(self.current_char)
 
     def tokenize(self):
         while self.current_char is not None:
             self.skip_whitespace()
-            NEXT = self.get_next_token()
-            if NEXT:
-                self.tokens.append(NEXT)
+            next_token = self.get_next_token()
+            if next_token:
+                self.tokens.append(next_token)
             else:
                 self.tokens.append(token.Token(token.TOKENTYPE.EOF, ""))
-            #print(self.tokens)
         return self.tokens
-    
+
 def tokenize(text):
     lexer = Lexer(text)
     return lexer.tokenize()

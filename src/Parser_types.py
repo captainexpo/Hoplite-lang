@@ -1,17 +1,16 @@
-# Updated class definitions with swapped AsLiteral and __repr__ methods
 
 class Statement:
     def AsLiteral(self):
         return "Statement()"
     
     def __repr__(self):
-        return ''
+        return self.AsLiteral()
 
 class Expression:
     def AsLiteral(self):
         return "Expression()"
     def __repr__(self):
-        return ''
+        return self.AsLiteral()
     
 class DataType:
     def __init__(self, name, methods, value):
@@ -47,8 +46,7 @@ class Block(Statement):
     def AsLiteral(self):
         return f"Block({self.statements})"
 
-    def __repr__(self):
-        return ''
+    
 
 class ReturnStatement(Statement):
     def __init__(self, value):
@@ -57,15 +55,17 @@ class ReturnStatement(Statement):
     def AsLiteral(self):
         return f"ReturnStatement({self.value})"
 
-    def __repr__(self):
-        return ''
+    
     
 
 class NumberLiteral(DataType):
     def __init__(self, type, value):
         self.type = type
         self.value = value
-
+        self.methods = {
+            "round": lambda i: round(self.value, i[0].value) if i else round(self.value),
+            "root": lambda root: NumberLiteral(self.type, self.value ** 1 / root[0].value),
+        }
     def AsLiteral(self):
         return f"NumberLiteral({self.type}, {self.value})"
     def add(self, other):
@@ -84,7 +84,28 @@ class NumberLiteral(DataType):
         return str(self.value)
     def unary_minus(self):
         return NumberLiteral(self.type, -self.value)
-
+    def is_equal(self, other):
+        return BooleanLiteral(other.value == self.value) 
+    def is_greater_than(self, other):
+        if other and isinstance(other, NumberLiteral):
+            return BooleanLiteral(other.value < self.value) 
+        return False
+    def is_less_than(self, other):
+        if other and isinstance(other, NumberLiteral):
+            return BooleanLiteral(other.value > self.value) 
+        return False
+    def is_less_than_or_equal(self, other):
+        if other and isinstance(other, NumberLiteral):
+            return BooleanLiteral(other.value >= self.value) 
+        return False
+    def is_greater_than_or_equal(self, other):
+        if other and isinstance(other, NumberLiteral):
+            return BooleanLiteral(other.value <= self.value) 
+        return False
+    def is_not_equal(self, other):
+        if other and isinstance(other, NumberLiteral):
+            return BooleanLiteral(other.value != self.value) 
+        return False
 class MethodCall(Expression):
     def __init__(self, variable, method_name, arguments):
         self.variable = variable
@@ -95,8 +116,7 @@ class MethodCall(Expression):
         arguments_str = ", ".join([str(arg) for arg in self.arguments])
         return f"MethodCall({self.variable}, {self.method}, [{arguments_str}])"
 
-    def __repr__(self):
-        return ''
+    
 
 class StringLiteral(DataType):
     def __init__(self, value):
@@ -128,7 +148,10 @@ class ArrayLiteral(DataType):
             self.elements.append(i)
     def AsLiteral(self):
         return f"ArrayLiteral({self.elements})"
-    
+    def add(self, other):
+        if isinstance(other, ArrayLiteral):
+            return ArrayLiteral(self.elements + other.elements)
+        self.elements.extend(other)
     def __repr__(self):
         output = "["
         for i in self.elements:
@@ -139,11 +162,11 @@ class ArrayLiteral(DataType):
 
 class BooleanLiteral(DataType):
     def __init__(self, value):
-        self.value = value == "true"
+        self.value = value if type(value) == bool else value == "true"
     def AsLiteral(self):
         return f"BooleanLiteral({self.value})"
     def unary_not(self) -> 'BooleanLiteral':
-        print("VASEAWEAWEAWE",self.value, not self.value)
+        #print("VALUE, NOT",self.value, not self.value)
         return BooleanLiteral(self.value == False)
     def is_equal(self, other):
         if isinstance(other, BooleanLiteral):
@@ -189,8 +212,7 @@ class FunctionCall(Expression):
     def AsLiteral(self):
         return f"FunctionCall({self.name}, {self.arguments})"
     
-    def __repr__(self):
-        return ''
+    
 
 
 class Assignment(Statement):
@@ -202,7 +224,7 @@ class Assignment(Statement):
         return f"Assignment({self.variable}, {self.value})"
 
     def __repr__(self):
-        return ''
+        return self.AsLiteral()
 
 class AugmentedAssignment(Statement):
     """Examples: x += 2, x -= 2, x *= 2 , x /= 2, x ^= 2, etc"""
@@ -214,8 +236,7 @@ class AugmentedAssignment(Statement):
     def AsLiteral(self):
         return f"AugmentedAssignment({self.variable}, {self.op}, {self.value})"
 
-    def __repr__(self):
-        return ''
+    
 
 class BinaryOperation(Expression):
     def __init__(self, left, op, right):
@@ -226,8 +247,7 @@ class BinaryOperation(Expression):
     def AsLiteral(self):
         return f"BinaryOperation({self.left}, {self.op}, {self.right})"
 
-    def __repr__(self):
-        return ''
+    
 
 class ComparisonOperation(Expression):
     def __init__(self, left, op, right):
@@ -239,7 +259,7 @@ class ComparisonOperation(Expression):
         return f"ComparisonOperation({self.left}, {self.op}, {self.right})"
     
     def __repr__(self):
-        return ''
+        return f"ComparisonOperation({self.left}, {self.op}, {self.right})"
     
 
 class UnaryOperation(Expression):
@@ -262,8 +282,7 @@ class VariableDeclaration(Statement):
     def AsLiteral(self):
         return f"VariableDeclaration({self.name}, {self.value})"
 
-    def __repr__(self):
-        return ''
+    
         
 
 class IfStatement (Statement):
@@ -275,8 +294,7 @@ class IfStatement (Statement):
     def AsLiteral(self):
         return f"IfStatement({self.condition}, {self.if_body}, {self.else_body})"
 
-    def __repr__(self):
-        return ''
+    
     
 class WhileStatement(Statement):
     def __init__(self, condition, body):
@@ -286,8 +304,7 @@ class WhileStatement(Statement):
     def AsLiteral(self):
         return f"WhileStatement({self.condition}, {self.body})"
 
-    def __repr__(self):
-        return ''
+    
     
 class ForStatement(Statement):
     def __init__(self, init, condition, update, body):
@@ -299,5 +316,4 @@ class ForStatement(Statement):
     def AsLiteral(self):
         return f"ForStatement({self.init.AsLiteral()}, {self.condition.AsLiteral()}, {self.update.AsLiteral()})"
 
-    def __repr__(self):
-        return ''
+    

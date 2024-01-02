@@ -29,12 +29,19 @@ def use_file(file_name: str, e: Eval.Evaluator,args: list):
                 include_file = f.read()
             tokens = Lexer.tokenize(include_file)
             ast = Parser.parse_program(tokens)
+            
             e.execute(ast)
     with open(file_name, "r") as f:
 
         program = f.read()
     tokens = Lexer.tokenize(program)
     ast = Parser.parse_program(tokens)
+    if "-tokens" in args:
+        for i in tokens:
+            print(i)
+    if "-ast" in args: 
+        for i in ast:
+            print(i)
     e.execute(ast)
 def use_as_repl(e: Eval.Evaluator):
     while True:
@@ -51,12 +58,11 @@ def use_as_repl(e: Eval.Evaluator):
 def main():
     REPL_MODE = False
     ev = Eval.Evaluator()
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "-r":
-            REPL_MODE = True
-        elif sys.argv[1] == "-f":
-            use_file(sys.argv[2], ev, sys.argv)
-            return
+    if "-r" in sys.argv:
+        REPL_MODE = True
+    if "-f" in sys.argv:
+        use_file(sys.argv[2], ev, sys.argv)
+        return
     else: 
         REPL_MODE = True
     if REPL_MODE: use_as_repl(ev)

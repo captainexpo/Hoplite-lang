@@ -148,18 +148,6 @@ TOKEN_PRIORITY = [
     TOKENTYPE.FUNCTION_DECLARATION,
     TOKENTYPE.VAR,
     TOKENTYPE.IF,
-    # ----- symbols -----
-    TOKENTYPE.COMMA,
-    TOKENTYPE.BANG,
-    TOKENTYPE.SEMICOLON,
-    TOKENTYPE.LPAREN,
-    TOKENTYPE.RPAREN,
-    TOKENTYPE.LBRACE,
-    TOKENTYPE.RBRACE,
-    TOKENTYPE.LBRACK,
-    TOKENTYPE.RBRACK,
-    TOKENTYPE.SINGLE_QUOTE,
-    TOKENTYPE.QUOTE,
     # ----- operators -----
     TOKENTYPE.MODULO_EQUAL,
     TOKENTYPE.TIMES_EQUAL,
@@ -181,6 +169,18 @@ TOKEN_PRIORITY = [
     TOKENTYPE.MUL,
     TOKENTYPE.DIV,
     TOKENTYPE.DOT,
+    # ----- symbols -----
+    TOKENTYPE.COMMA,
+    TOKENTYPE.BANG,
+    TOKENTYPE.SEMICOLON,
+    TOKENTYPE.LPAREN,
+    TOKENTYPE.RPAREN,
+    TOKENTYPE.LBRACE,
+    TOKENTYPE.RBRACE,
+    TOKENTYPE.LBRACK,
+    TOKENTYPE.RBRACK,
+    TOKENTYPE.SINGLE_QUOTE,
+    TOKENTYPE.QUOTE,
     # ----- identifier -----
     TOKENTYPE.NAME
 ]
@@ -189,10 +189,11 @@ for key, value in TOKEN_RULES.items():
     TOKEN_RULES[key] = re.compile(value)
 
 class Token:
-    def __init__(self, type, value):
+    def __init__(self, type, value, line=0, column=0):
         self.type = type
         self.value = value
-
+        self.line = line
+        self.column = column
     def __repr__(self):
         return f"Token({self.type}, \"{self.value}\")"
     

@@ -6,6 +6,7 @@ var iterations = 1000000
 var j = 0
 
 while (j < iterations) {
+    //print(i == true)
     if (i == true) {
         //print("ADDING")
         total += (numerator / denominator)
@@ -15,7 +16,7 @@ while (j < iterations) {
     }
     denominator += 2.0
     i = !i
-    print(i)
+    print(total)
     j += 1
 }
 

@@ -62,7 +62,7 @@ class Evaluator:
 
         elif isinstance(node, PTypes.IfStatement):
             condition_value = self.evaluate(node.condition, scope)
-            if condition_value:
+            if condition_value.value == True:
                 for statement in node.if_body:
                     result = self.evaluate(statement, scope)
                     if isinstance(result, ReturnValue):
@@ -110,23 +110,24 @@ class Evaluator:
 
 
     def perform_comparison_operation(self, op, left: PTypes.DataType, right: PTypes.DataType):
-        left = left.value if isinstance(left, PTypes.NumberLiteral) else left
-        right = right.value if isinstance(right, PTypes.NumberLiteral) else right
+        left = left if isinstance(left, PTypes.NumberLiteral) else left
+        right = right if isinstance(right, PTypes.NumberLiteral) else right
+        #print(left.AsLiteral(),right.AsLiteral(),op)
         if op == Token.TOKENTYPE.IS_EQUAL:
-            print(left, right)
+            #print(left.is_equal( right))
             return left.is_equal(right)
         elif op == Token.TOKENTYPE.NOT_EQUAL:
-            return PTypes.BooleanLiteral(left != right)
+            return left.is_not_equal(right)
         elif op == Token.TOKENTYPE.LESS_THAN:
-            return PTypes.BooleanLiteral(left < right)
+            return left.is_less_than(right)
         elif op == Token.TOKENTYPE.LESS_THAN_OR_EQUAL:
-            return PTypes.BooleanLiteral(left <= right)
+            return left.is_less_than_or_equal(right)
         elif op == Token.TOKENTYPE.GREATER_THAN:
-            return PTypes.BooleanLiteral(left > right)
+            return left.is_greater_than(right)
         elif op == Token.TOKENTYPE.GREATER_THAN_OR_EQUAL:
-            return PTypes.BooleanLiteral(left >= right)
+            return left.is_greater_than_or_equal(right)
         else:
-            raise Exception(f"Unsupported comparison operation '{op}'")
+            raise Exception
 
     def perform_binary_operation(self, op, left: PTypes.NumberLiteral, right: PTypes.NumberLiteral, scope=None):
         left = self.evaluate(left, scope)
@@ -151,18 +152,21 @@ class Evaluator:
         if op == Token.TOKENTYPE.MINUS:
             return operand.unary_minus()
         elif op == Token.TOKENTYPE.BANG:
-            print("BANG", operand.unary_not())
+            #print("BANG", operand.unary_not())
             return operand.unary_not()
         else:
             raise Exception(f"Unsupported unary operation '{op}'")
 
-    std_functions = ["print","time"]
+    std_functions = ["print","time","quit"]
     def handle_std_function_call(self, node, scope):
         if node.name == "print":
-            print(self.evaluate(node.arguments[0], scope))
+            a=[self.evaluate(i, scope) for i in node.arguments]
+            print(*a)
         elif node.name == "time":
             import time
             return PTypes.NumberLiteral('float',time.time())
+        elif node.name == "quit":
+            exit()
         else:
             raise Exception(f"Unknown standard function '{node.name}'")
     def handle_method_call(self, node: PTypes.MethodCall, scope):
@@ -210,10 +214,9 @@ class Evaluator:
 # Example usage
 if __name__ == "__main__":
     ev = Evaluator()
-    program = """
-    var a = true
-    a = !a
-    print(!a)
+    program = """var x = 12
+    var y = 15 == 15
+    print(!!y)
     """
     tokens = Lexer.tokenize(program)
     #print(tokens)

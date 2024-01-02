@@ -6,7 +6,14 @@ class Parser:
         self.pos = 0
 
     def error(self, message="Invalid syntax"):
-        raise Exception(message)
+        if message:
+            #print error in red color
+            token = self.current_token()
+            if token:
+                print(f"\033[91m{message} at line {token.line}, col {token.column}.\033[0m")
+            else:
+                print(f"\033[91m{message}\033[0m")
+            quit()
 
     def current_token(self):
         if self.pos < len(self.tokens):
@@ -20,12 +27,12 @@ class Parser:
             self.error(f"Expected token: {token_type}, found: {self.current_token()}")
     def get_statement(self):
         if self.current_token().type == Token.TOKENTYPE.COMMENT:
+            print("THIS IS A COMMENT",self.current_token().value)
             self.eat(Token.TOKENTYPE.COMMENT)
         elif self.current_token().type == Token.TOKENTYPE.WHILE:
             return self.parse_while_statement()
         elif self.current_token().type == Token.TOKENTYPE.FOR:
             return self.parse_for_loop()
-        
         elif self.current_token().type == Token.TOKENTYPE.FUNCTION_DECLARATION:
             return self.parse_function_declaration()
         elif self.current_token().type == Token.TOKENTYPE.VAR:
@@ -51,7 +58,9 @@ class Parser:
     def parse(self):
         statements = []
         while self.current_token() is not None and self.current_token().type != Token.TOKENTYPE.EOF:
-            statements.append(self.get_statement())
+            statement = self.get_statement()
+            if statement:
+                statements.append(statement)
         return statements
 
     def parse_for_loop(self):
