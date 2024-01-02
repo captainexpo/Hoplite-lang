@@ -47,12 +47,10 @@ mkfunc add(x,y){
 }
 mkfunc recursive(x){
     if (x == 1) {
-        print("THIS IS RETURNING")
-        quit()
+        print("X",x)
         return 1
     }
-    print("XAWEAWEAWE",x)
     return x + recursive(x - 1)
 }
-print(add(1,2))
 print(recursive(10))
+print(add(1,2))

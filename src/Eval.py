@@ -2,6 +2,7 @@ import Parser_types as PTypes
 import Tokens as Token
 import Lexer as Lexer
 import Parser as Parser
+import sys
 class ReturnValue(Exception):
     def __init__(self, value):
         self.value = value
@@ -74,10 +75,13 @@ class Evaluator:
                         return result.value
 
         elif isinstance(node, PTypes.ReturnStatement):
-            return ReturnValue(self.evaluate(node.value, scope))
+            raise ReturnValue(self.evaluate(node.value, scope))  # Immediately propagate return value
+
 
         elif isinstance(node, PTypes.WhileStatement):
-            while self.evaluate(node.condition, scope):
+
+            while self.evaluate(node.condition, scope).value == True:
+                #print(node.condition,scope, self.evaluate(node.condition, scope))
                 for statement in node.body:
                     result = self.evaluate(statement, scope)
                     if isinstance(result, ReturnValue):
@@ -198,8 +202,8 @@ class Evaluator:
         try:
             for statement in func.body:
                 result = self.evaluate(statement, local_scope)
-                if isinstance(statement, PTypes.ReturnStatement):
-                    return result
+                if isinstance(result, PTypes.ReturnStatement):
+                    raise result.value  # Return the value enclosed in ReturnValue
         except ReturnValue as returnValue:
             return returnValue.value
 

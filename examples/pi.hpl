@@ -2,9 +2,9 @@ var numerator = 4.0
 var denominator = 1.0 
 var total = 0.0
 var i = true 
-var iterations = 1000000
+var iterations = 100000
 var j = 0
-
+var ct = time()
 while (j < iterations) {
     //print(i == true)
     if (i == true) {
@@ -16,8 +16,7 @@ while (j < iterations) {
     }
     denominator += 2.0
     i = !i
-    print(total)
     j += 1
+    //print(j)
 }
-
-print(4*total) 
+print(total, "in", time() - ct, "seconds")
