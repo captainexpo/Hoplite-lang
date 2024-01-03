@@ -24,11 +24,12 @@ class Parser:
         if self.current_token() and self.current_token().type == token_type:
             self.pos += 1
         else:
-            self.error(f"Expected token: {token_type}, found: {self.current_token()}")
+            self.error(f"Expected token: {token_type}, found: {self.current_token().value} of type {self.current_token().type}")
     def get_statement(self):
         if self.current_token().type == Token.TOKENTYPE.COMMENT:
-            print("THIS IS A COMMENT",self.current_token().value)
             self.eat(Token.TOKENTYPE.COMMENT)
+        elif self.current_token().type == Token.TOKENTYPE.IMPORT:
+            return self.parse_import_statment()
         elif self.current_token().type == Token.TOKENTYPE.WHILE:
             return self.parse_while_statement()
         elif self.current_token().type == Token.TOKENTYPE.FOR:
@@ -62,7 +63,11 @@ class Parser:
             if statement:
                 statements.append(statement)
         return statements
-
+    def parse_import_statment(self):
+        self.eat(Token.TOKENTYPE.IMPORT)
+        import_name = self.current_token().value
+        self.eat(Token.TOKENTYPE.STRING)
+        return ImportStatement(import_name)
     def parse_for_loop(self):
         self.eat(Token.TOKENTYPE.FOR)
         self.eat(Token.TOKENTYPE.LPAREN)
@@ -94,8 +99,8 @@ class Parser:
         self.eat(Token.TOKENTYPE.LBRACE)
         body = self.parse_block()
         self.eat(Token.TOKENTYPE.RBRACE)
-        for statement in body:
-            print(statement.AsLiteral())
+        #for statement in body:
+        #    print(statement.AsLiteral())
 
         return ForStatement(init, condition, update, body)
 
@@ -210,7 +215,7 @@ class Parser:
             self.eat(token_type)
             node = ComparisonOperation(node, token_type, self.parse_term())
 
-        return node
+        return self.parse_possible_method_call(node)
 
     def parse_term(self):
         node = self.parse_factor()
@@ -253,50 +258,62 @@ class Parser:
         return MethodCall(variable, method_name, arguments)
     def parse_atom(self):
         token = self.current_token()
+        result = None
         if token.type == Token.TOKENTYPE.BANG:
             self.eat(Token.TOKENTYPE.BANG)
             operand = self.parse_atom()
-            return UnaryOperation(Token.TOKENTYPE.BANG,operand)
+            result = UnaryOperation(Token.TOKENTYPE.BANG,operand)
         elif token.type == Token.TOKENTYPE.MINUS:
             self.eat(Token.TOKENTYPE.MINUS)
             operand = self.parse_atom()
             #print(UnaryOperation(operand, Token.TOKENTYPE.MINUS))
-            return UnaryOperation(Token.TOKENTYPE.MINUS, operand)
+            result = UnaryOperation(Token.TOKENTYPE.MINUS, operand)
         elif token.type == Token.TOKENTYPE.INTEGER:
             self.eat(Token.TOKENTYPE.INTEGER)
-            return NumberLiteral("int", int(token.value))
+            result = NumberLiteral("int", int(token.value))
         elif token.type == Token.TOKENTYPE.STRING:
             self.eat(Token.TOKENTYPE.STRING)
             token.value = token.value[1:-1]
-            return StringLiteral(token.value)
+            result = StringLiteral(token.value)
         elif token.type == Token.TOKENTYPE.FLOAT:
             self.eat(Token.TOKENTYPE.FLOAT)
-            return NumberLiteral("float", float(token.value))
+            result = NumberLiteral("float", float(token.value))
         elif token.type == Token.TOKENTYPE.TRUE:
             self.eat(Token.TOKENTYPE.TRUE)
-            return BooleanLiteral("true")
+            result = BooleanLiteral("true")
         elif token.type == Token.TOKENTYPE.FALSE:
             self.eat(Token.TOKENTYPE.FALSE)
-            return BooleanLiteral("false")
+            result = BooleanLiteral("false")
         elif token.type == Token.TOKENTYPE.LBRACK:
-            return self.parse_array_literal()
+            result = self.parse_array_literal()
         elif token.type == Token.TOKENTYPE.NAME:
             # Check if it's a function call
             lookahead_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
             if lookahead_token and lookahead_token.type == Token.TOKENTYPE.LPAREN:
-                return self.parse_function_call()
+                result = self.parse_function_call()
             elif lookahead_token and lookahead_token.type == Token.TOKENTYPE.DOT:
-                return self.parse_method_call(Variable(token.value))
+                result = self.parse_method_call(Variable(token.value))
             else:
                 self.eat(Token.TOKENTYPE.NAME)
-                return Variable(token.value)
+                result = Variable(token.value)
         elif token.type == Token.TOKENTYPE.LPAREN:
             self.eat(Token.TOKENTYPE.LPAREN)
             node = self.parse_expression()
             self.eat(Token.TOKENTYPE.RPAREN)
-            return node
+            result = node
         else:
             self.error(f"Unknown atom {token}")
+        return self.parse_possible_method_call(result)
+    def parse_possible_method_call(self, node):
+        while self.current_token() and self.current_token().type == Token.TOKENTYPE.DOT:
+            self.eat(Token.TOKENTYPE.DOT)
+            method_name = self.current_token().value
+            self.eat(Token.TOKENTYPE.NAME)
+            self.eat(Token.TOKENTYPE.LPAREN)
+            arguments = self.parse_arguments()
+            self.eat(Token.TOKENTYPE.RPAREN)
+            node = MethodCall(node, method_name, arguments)
+        return node
     def parse_if_statement(self):
         self.eat(Token.TOKENTYPE.IF)
         self.eat(Token.TOKENTYPE.LPAREN)
@@ -354,10 +371,9 @@ def parse_program(tokens):
 if __name__ == "__main__":
     import Lexer, json
     program =  """
-    var x = [1,2,3,4,5,6,7,8,9,10]
-    print(x.sort())
+    import "./shaboingus.hpl"
 
     """
     tokens = Lexer.tokenize(program)
-    print(tokens)
-    print(simple_ast_format(parse_program(tokens)))
+    #print(tokens)
+    #print(simple_ast_format(parse_program(tokens)))

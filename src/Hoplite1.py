@@ -7,6 +7,16 @@ def use_file(file_name: str, e: Eval.Evaluator,args: list):
     if not os.path.isfile(file_name):
         print("File does not exist")
         return
+    # get cwd from file name "../examples/benchmark.hpl" or such -> "../examples" given current file = "src/Hoplite1.py"
+
+    full_path = os.path.dirname(file_name)
+    #print("CWD", os.getcwd())
+    #print("RELATIVE_TO_FILE", file_name)
+    #print("FULL_PATH", full_path)
+    absolute_path = os.path.abspath(full_path)
+    e.file_path = absolute_path
+    #print("ABSOLUTE_PATH", absolute_path)
+   # print("E", e.file_path)
     # args format = [file_name, -f, file_name, -i (optional), include_file_name (optional)]
     # -f = file to use
     # -i = include file
@@ -35,10 +45,10 @@ def use_file(file_name: str, e: Eval.Evaluator,args: list):
 
         program = f.read()
     tokens = Lexer.tokenize(program)
-    ast = Parser.parse_program(tokens)
     if "-tokens" in args:
         for i in tokens:
             print(i)
+    ast = Parser.parse_program(tokens)
     if "-ast" in args: 
         for i in ast:
             print(i)

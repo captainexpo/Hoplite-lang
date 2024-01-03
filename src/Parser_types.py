@@ -63,7 +63,7 @@ class NumberLiteral(DataType):
         self.type = type
         self.value = value
         self.methods = {
-            "round": lambda i: round(self.value, i[0].value) if i else round(self.value),
+            "round": lambda i: round(self.value, i.value) if i else round(self.value),
             "root": lambda root: NumberLiteral(self.type, self.value ** 1 / root[0].value),
         }
     def AsLiteral(self):
@@ -89,23 +89,23 @@ class NumberLiteral(DataType):
     def is_greater_than(self, other):
         if other and isinstance(other, NumberLiteral):
             return BooleanLiteral(other.value < self.value) 
-        return False
+        return BooleanLiteral(False)
     def is_less_than(self, other):
         if other and isinstance(other, NumberLiteral):
             return BooleanLiteral(other.value > self.value) 
-        return False
+        return BooleanLiteral(False)
     def is_less_than_or_equal(self, other):
         if other and isinstance(other, NumberLiteral):
             return BooleanLiteral(other.value >= self.value) 
-        return False
+        return BooleanLiteral(False)
     def is_greater_than_or_equal(self, other):
         if other and isinstance(other, NumberLiteral):
             return BooleanLiteral(other.value <= self.value) 
-        return False
+        return BooleanLiteral(False)
     def is_not_equal(self, other):
         if other and isinstance(other, NumberLiteral):
             return BooleanLiteral(other.value != self.value) 
-        return False
+        return BooleanLiteral(False)
 class MethodCall(Expression):
     def __init__(self, variable, method_name, arguments):
         self.variable = variable
@@ -121,6 +121,22 @@ class MethodCall(Expression):
 class StringLiteral(DataType):
     def __init__(self, value):
         self.value = value
+        self.methods = {
+            "insert_at": lambda index, item: self.insert_at(index, item),
+            "length": lambda: NumberLiteral("int", len(self.value)),
+            "at": lambda index: StringLiteral(self.value[index.value]),
+            "contains": lambda item: BooleanLiteral(item in self.value),
+            "upper": lambda: StringLiteral(self.value.upper()),
+            "lower": lambda: StringLiteral(self.value.lower()),
+            "to_ascii": lambda: self.to_ascii(),
+        }
+    def to_ascii(self):
+        if len(self.value) == 1:
+            return NumberLiteral("int", ord(self.value[0]))
+        else:
+            return ArrayLiteral([NumberLiteral("int", ord(i)) for i in self.value])
+    def insert_at(self, index, item):
+        self.value = self.value[:index] + item + self.value[index:]
 
     def AsLiteral(self):
         return f"StringLiteral({self.value})"
@@ -135,17 +151,25 @@ class StringLiteral(DataType):
     def __repr__(self):
         return self.value
 
+class ImportStatement(Statement):
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+    def AsLiteral(self):
+        return f"ImportStatement({self.file_name})"
+
 class ArrayLiteral(DataType):
     def __init__(self, elements):
         self.elements = elements
         self.methods = {
             "append": lambda item: self.append(item),
-            "pop": lambda i: self.elements.pop(),
-            "at": lambda index: self.elements[index[0].value],
+            "pop": self.elements.pop() if len(self.elements) > 0 else None,
+            "at": lambda index: self.elements[index.value],
+            "contains": lambda item: BooleanLiteral(item in self.elements),
+            "length": lambda: NumberLiteral("int", len(self.elements)),
         }
     def append(self, item):
-        for i in item:
-            self.elements.append(i)
+        self.elements.append(item)
     def AsLiteral(self):
         return f"ArrayLiteral({self.elements})"
     def add(self, other):
@@ -163,6 +187,11 @@ class ArrayLiteral(DataType):
 class BooleanLiteral(DataType):
     def __init__(self, value):
         self.value = value if type(value) == bool else value == "true"
+        self.methods = {
+            "and": lambda other: BooleanLiteral(self.value and other.value),
+            "or": lambda other: BooleanLiteral(self.value or other.value),
+            "as_int": lambda: NumberLiteral("int", 1 if self.value else 0),
+        }
     def AsLiteral(self):
         return f"BooleanLiteral({self.value})"
     def unary_not(self) -> 'BooleanLiteral':

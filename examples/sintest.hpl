@@ -1,4 +1,10 @@
-
-
-
-
+import "stdlib.hpl"
+import "pi.hpl"
+var a = []
+for(var x = 0; a.length() < 201; x += 1){
+    var sx = sin(x).round(2)
+    if (!a.contains(sx)){
+        a.append(sx)
+        print(a.length())
+    }
+}

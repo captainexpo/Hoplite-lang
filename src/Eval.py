@@ -2,13 +2,15 @@ import Parser_types as PTypes
 import Tokens as Token
 import Lexer as Lexer
 import Parser as Parser
-import sys
+import os
+import time
 class ReturnValue(Exception):
     def __init__(self, value):
         self.value = value
 
 class Evaluator:
-    def __init__(self):
+    def __init__(self, file_path=None):
+        self.file_path = file_path
         self.global_symbol_table = {}
 
     def evaluate(self, node, local_scope=None):
@@ -27,7 +29,8 @@ class Evaluator:
             #print("VAR VALUE", type(scope[node.variable]))
             #print("BBBBB", type(self.evaluate(node.value, scope)))
             scope[node.variable] = self.perform_binary_operation(node.op, scope[node.variable], self.evaluate(node.value, scope), scope)
-
+        elif isinstance(node, PTypes.ImportStatement):
+            self.handle_file_import(node, scope)
         elif isinstance(node, PTypes.BinaryOperation):
             if not isinstance(node.left, PTypes.Variable):
                 left = self.evaluate(node.left, scope)
@@ -111,7 +114,13 @@ class Evaluator:
 
         else:
             raise Exception(f"Unknown node type '{node}'")
-
+    def handle_file_import(self, node, scope):
+        n = os.path.join(self.file_path, node.file_name.replace("\"",""))
+        with open(n, "r") as f:
+            include_file = f.read()
+        tokens = Lexer.tokenize(include_file)
+        ast = Parser.parse_program(tokens)
+        self.execute(ast)
 
     def perform_comparison_operation(self, op, left: PTypes.DataType, right: PTypes.DataType):
         left = left if isinstance(left, PTypes.NumberLiteral) else left
@@ -152,7 +161,6 @@ class Evaluator:
             raise Exception(f"Unsupported binary operation '{op}'")
 
     def perform_unary_operation(self, op, operand: PTypes.DataType):
-        operand = operand.value if isinstance(operand, PTypes.NumberLiteral) else operand
         if op == Token.TOKENTYPE.MINUS:
             return operand.unary_minus()
         elif op == Token.TOKENTYPE.BANG:
@@ -161,16 +169,19 @@ class Evaluator:
         else:
             raise Exception(f"Unsupported unary operation '{op}'")
 
-    std_functions = ["print","time","quit"]
+    std_functions = ["print","time","quit","sleep","string"]
     def handle_std_function_call(self, node, scope):
         if node.name == "print":
             a=[self.evaluate(i, scope) for i in node.arguments]
             print(*a)
         elif node.name == "time":
-            import time
             return PTypes.NumberLiteral('float',time.time())
         elif node.name == "quit":
             exit()
+        elif node.name == "sleep":
+            time.sleep(self.evaluate(node.arguments[0], scope).value)
+        elif node.name == "string":
+            return PTypes.StringLiteral(str(self.evaluate(node.arguments[0], scope)))
         else:
             raise Exception(f"Unknown standard function '{node.name}'")
     def handle_method_call(self, node: PTypes.MethodCall, scope):
@@ -182,7 +193,7 @@ class Evaluator:
         var_value = self.evaluate(variable, scope)
         variable_methods = var_value.methods if hasattr(var_value, "methods") else {}
         if method in variable_methods:
-            return variable_methods[method](n_args)
+            return variable_methods[method](*n_args)
         else:
             raise Exception(f"Variable '{variable.name}' does not have method '{method}'")
 
@@ -217,14 +228,16 @@ class Evaluator:
 
 # Example usage
 if __name__ == "__main__":
-    ev = Evaluator()
-    program = """var x = 12
-    var y = 15 == 15
-    print(!!y)
+    current_path = "../examples/"
+    ev = Evaluator(current_path)
+    os.chdir(current_path)
+    program = """
+    import "./stdlib.hpl"
+    print(sin(3))
     """
     tokens = Lexer.tokenize(program)
     #print(tokens)
     ast = Parser.parse_program(tokens)
-    for i in ast:
-        print(i.AsLiteral())
+    #for i in ast:
+    #    print(i.AsLiteral())
     ev.execute(ast)

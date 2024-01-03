@@ -1,13 +1,4 @@
-
 var PI = 3.14159265358979
-
-mkfunc not(bool){
-    if (bool){
-        return false
-    } else {
-        return true
-    }
-}
 
 mkfunc rad_to_deg(rad){
     var PI = 3.14159265358979
@@ -36,14 +27,16 @@ mkfunc factorial(n){
     }
     return result
 }
-
 mkfunc sin(x){
+   x %= (2 * 3.14159)
     var tolerance = 0.000001
     var result = 0
     var n = 1
-    while (abs(result - sin_taylor(x)) > tolerance){
-        result = result + ((1-2)^ (n - 1) * (x) ^ (2 * n - 1)) / factorial(2 * n - 1)
-        n = n + 1
+    var term = x
+    while (abs(term) > tolerance){
+        result = result + term
+        n = n + 2
+        term = -term * x * x / (n * (n - 1))
     }
     return result
 }
